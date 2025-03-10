@@ -1,117 +1,148 @@
 # Javier Urrego Ojeda
 # 9009598
-# Project 1 - Parte A
+# Project 1 - Parte B
 
-class evaluador:
+class evaluar:
     
     def __init__(self, archivo):
         self.archivo = archivo
-        self.valores = {}
         self.formulas = []
-        self.cargar_datos()
+        self.atomicos = []
+        self.cargar()
         self.ejecutar()
 
-    def cargar_datos(self):    
+    def cargar(self):    
         with open(self.archivo, "r") as file:
             lineas = file.readlines()
 
-        n = int(lineas[0].strip())  
+        s = int(lineas[0].strip())  
         i = 1
 
-        while i <= n:
-            partes = lineas[i].strip().split()
-            if len(partes) == 2 and partes[1] in {"0", "1"}:
-                self.valores[partes[0]] = int(partes[1])
-            i += 1
-
-        s = int(lineas[i].strip())
-        i += 1
-
-        while i < len(lineas):
+        while i <= s:
             self.formulas.append(lineas[i].strip())
             i += 1
 
-    def eliminar_espacios(self, formula):
-        resultado = ""
-        i = 0
-        while i < len(formula):
-            if formula[i] != " ":
-                resultado += formula[i]
-            i += 1
-        return resultado
+        self.atomicos = self.extraer()
 
-    def evaluar_formula(self, formula):
-        valores_temporales = self.valores.copy()
-        pila_operandos = []
-        pila_operadores = []
+    def extraer(self):
+        atomos = []
+        i = 0
+        while i < len(self.formulas):
+            j = 0
+            while j < len(self.formulas[i]):
+                caracter = self.formulas[i][j]
+                if "a" <= caracter <= "z" and caracter not in atomos:
+                    atomos.append(caracter)
+                j += 1
+            i += 1
+        return atomos
+
+    def generar(self):
+
+        valor = []
+        
+        total = 2 ** len(self.atomicos) 
+        i = 0
+        while i < total:
+            valores = {}  
+            j = 0
+            while j < len(self.atomicos):
+                if (i // (2 ** j)) % 2 == 0:
+                    valores[self.atomicos[j]] = 0  
+                else:
+                    valores[self.atomicos[j]] = 1  
+                j += 1
+            valor.append(valores)
+            i += 1
+
+        return valor
+
+
+    def evaluarF(self, formula, valores):
+        pila = []
+        operadores = []
         i = 0
 
         while i < len(formula):
             caracter = formula[i]
 
-            if caracter in valores_temporales:
-                pila_operandos.append(valores_temporales[caracter])
-            
+            if "a" <= caracter <= "z":
+                pila.append(valores[caracter])
+
             else:
                 if caracter == "!":
-                    pila_operadores.append(caracter)
+                    operadores.append(caracter)
                 else:
                     if caracter in {"&", "|"}:
-                        while (pila_operadores and pila_operadores[-1] == "!"):
-                            valor = pila_operandos.pop()
-                            pila_operandos.append(1 if valor == 0 else 0)
-                            pila_operadores.pop()
-                        pila_operadores.append(caracter)
+                        while operadores and operadores[-1] == "!":
+                            valor = pila[-1]
+                            pila[-1] = 1 if valor == 0 else 0
+                            operadores.pop()
+                        operadores.append(caracter)
 
                     elif caracter == "(":
-                        pila_operadores.append(caracter)
+                        operadores.append(caracter)
 
                     elif caracter == ")":
-                        while pila_operadores and pila_operadores[-1] != "(":
-                            operador = pila_operadores.pop()
-                            if operador == "!":
-                                valor = pila_operandos.pop()
-                                pila_operandos.append(1 if valor == 0 else 0)
-                            else:
-                                if len(pila_operandos) >= 2:
-                                    b = pila_operandos.pop()
-                                    a = pila_operandos.pop()
-                                    if operador == "&":
-                                        pila_operandos.append(1 if a == 1 and b == 1 else 0)
-                                    elif operador == "|":
-                                        pila_operandos.append(1 if a == 1 or b == 1 else 0)
+                        while operadores and operadores[-1] != "(":
+                            operador = operadores.pop()
 
-                        if pila_operadores and pila_operadores[-1] == "(":
-                            pila_operadores.pop()
+                            if operador == "!":
+                                valor = pila[-1]
+                                pila[-1] = 1 if valor == 0 else 0
+                            else:
+                                if len(pila) >= 2:
+                                    b = pila.pop()
+                                    a = pila.pop()
+                                    if operador == "&":
+                                        pila.append(1 if a == 1 and b == 1 else 0)
+                                    elif operador == "|":
+                                        pila.append(1 if a == 1 or b == 1 else 0)
+
+                        if operadores and operadores[-1] == "(":
+                            operadores.pop()
 
             i += 1
 
-        while pila_operadores:
-            operador = pila_operadores.pop()
+        while operadores:
+            operador = operadores.pop()
             if operador == "!":
-                valor = pila_operandos.pop()
-                pila_operandos.append(1 if valor == 0 else 0)
+                valor = pila[-1]
+                pila[-1] = 1 if valor == 0 else 0
             else:
-                if len(pila_operandos) >= 2:
-                    b = pila_operandos.pop()
-                    a = pila_operandos.pop()
+                if len(pila) >= 2:
+                    b = pila.pop()
+                    a = pila.pop()
                     if operador == "&":
-                        pila_operandos.append(1 if a == 1 and b == 1 else 0)
+                        pila.append(1 if a == 1 and b == 1 else 0)
                     elif operador == "|":
-                        pila_operandos.append(1 if a == 1 or b == 1 else 0)
+                        pila.append(1 if a == 1 or b == 1 else 0)
 
-        return pila_operandos[0] if pila_operandos else 0  
+        return pila[0] if pila else 0
+
+    def det_tip(self, formula):
+        valor = self.generar()
+        resultados = []
+        i = 0
+        while i < len(valor):
+            resultado = self.evaluarF(formula, valor[i])
+            resultados.append(resultado)
+            i += 1
+        
+        if all(res == 1 for res in resultados):
+            return 1  #si es tautología
+        if all(res == 0 for res in resultados):
+            return 0  #si es contradicción
+        return -1  #si es contingencia
 
     def ejecutar(self):
         resultados = []
         i = 0
         while i < len(self.formulas):
-            formula = self.eliminar_espacios(self.formulas[i])
-            resultado = self.evaluar_formula(formula)
+            resultado = self.det_tip(self.formulas[i])
             resultados.append(str(resultado))
             i += 1
 
         print("Resultados:", ", ".join(resultados))
 
-
-evaluador("a.txt")
+evaluar("b.txt")
